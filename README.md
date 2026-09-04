@@ -6,11 +6,11 @@ relying on this PC being on and Windows Task Scheduler running
 daily timer — see `.github/workflows/schedule.yml`.
 
 The scheduling rules are identical to the local version: every row in
-`Schedule.xlsx` has its own `Date` (a deadline, or a recurring `N Every
-month` spec), and mail for that row goes out 5 days before it. See the
-main `README.md` in `LG/` for the full explanation of `Date`, `Subject`/
-`Message`, recurring rows, and `Status` values — none of that changes
-here.
+`Schedule.xlsx` has its own `Date` (a recurring `N Every month` spec, or
+the exact date to send on), and mail for that row goes out on that date.
+See the main `README.md` in `LG/` for the full explanation of `Date`,
+`Subject`/`Message`, recurring rows, and `Status` values — none of that
+changes here.
 
 ## One-time setup on GitHub
 

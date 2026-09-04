@@ -3,11 +3,11 @@ Scheduled Mass Mail sender.
 
 Companion to the existing MassEmail.exe tool, but instead of sending
 immediately, each row in Schedule.xlsx carries its own "Date". The mail
-for that row is sent SEND_DAYS_BEFORE days before that Date (currently 5),
-independently of every other row. Date can also be a recurring monthly
-spec like "10 Every month" -- see parse_recurring_day.
+for that row is sent on that Date itself, independently of every other
+row. Date can also be a recurring monthly spec like "10 Every month" --
+see parse_recurring_day.
 
-Example: Date = 15/09/2026, SEND_DAYS_BEFORE = 5 -> mail goes out 10/09/2026.
+Example: Date = 15/09/2026 -> mail goes out 15/09/2026.
 
 Run it once a day (see Run_Scheduler.bat / Windows Task Scheduler) and it
 will send whatever has come due and leave the rest pending.
@@ -58,7 +58,7 @@ STATUS_COL = "Status"
 SUBJECT_COL = "Subject"
 MESSAGE_COL = "Message"
 
-SEND_DAYS_BEFORE = 5  # mail always goes out this many days before the Date column
+SEND_DAYS_BEFORE = 0  # mail always goes out this many days before the Date column
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 465
