@@ -1,0 +1,44 @@
+name: Scheduled Mass Mail
+
+on:
+  schedule:
+    # 00:30 UTC = 06:00 IST. Cron is always UTC on GitHub -- adjust this
+    # if you want the daily check to run at a different local time.
+    - cron: "30 0 * * *"
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write   # needed so the workflow can commit Schedule.xlsx back
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run scheduler
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          ATTACHMENTS_DIR: ${{ github.workspace }}/Attachments
+        run: python mass_mail_scheduler.py
+
+      # Sending updates Schedule.xlsx's Status column (e.g. to "Sent (...)").
+      # Commit that change back so the same row is never sent twice.
+      - name: Commit updated Schedule.xlsx
+        run: |
+          if ! git diff --quiet -- Schedule.xlsx; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Schedule.xlsx
+            git commit -m "Update Schedule.xlsx after scheduled run"
+            git push
+          else
+            echo "No changes to Schedule.xlsx -- nothing to commit."
+          fi

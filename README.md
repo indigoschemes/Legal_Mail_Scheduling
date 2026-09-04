@@ -1,0 +1,54 @@
+# Scheduled Mass Mail (GitHub Actions)
+
+This is the GitHub-hosted twin of the local scheduler in `LG/`. Instead of
+relying on this PC being on and Windows Task Scheduler running
+`Run_Scheduler.bat`, GitHub's own servers run the exact same script on a
+daily timer — see `.github/workflows/schedule.yml`.
+
+The scheduling rules are identical to the local version: every row in
+`Schedule.xlsx` has its own `Date` (a deadline, or a recurring `N Every
+month` spec), and mail for that row goes out 5 days before it. See the
+main `README.md` in `LG/` for the full explanation of `Date`, `Subject`/
+`Message`, recurring rows, and `Status` values — none of that changes
+here.
+
+## One-time setup on GitHub
+
+1. **Create a private repository** and push this folder's contents to it.
+   (`git init`, `git add .`, `git commit`, add the remote, `git push`.)
+2. **Add two repository secrets** — repo → Settings → Secrets and
+   variables → Actions → New repository secret:
+   - `SENDER_EMAIL` — the Gmail address to send from.
+   - `APP_PASSWORD` — its 16-character Gmail App Password (see the main
+     README's "Setting the sender" section for how to generate one).
+
+   These are read by `mass_mail_scheduler.py` via environment variables —
+   nothing else to configure. `credentials.json` (used for local runs) is
+   never used here and is excluded by `.gitignore`.
+3. That's it. The workflow runs automatically every day at the time set
+   in `schedule.yml` (default: 06:00 IST / 00:30 UTC — edit the `cron`
+   line there to change it). You can also trigger a run manually any time
+   from the repo's **Actions** tab → "Scheduled Mass Mail" → **Run workflow**.
+
+## Keeping this folder in sync
+
+Whenever you add rows, change content, or add attachments in your local
+`Schedule.xlsx` / `Attachments`, copy the updated files into this folder
+and push again (`git add`, `git commit`, `git push`) so the version
+running on GitHub matches what you intend to send.
+
+## Things to know
+
+- **Timezone**: the workflow's cron schedule runs in UTC; the `cron` line
+  in `schedule.yml` already accounts for the IST offset, but re-check it
+  if you change the time.
+- **Not to-the-minute precision**: GitHub can delay a scheduled run by a
+  few minutes (occasionally more) under load — it still runs that day.
+- **60-day auto-disable**: GitHub automatically disables a scheduled
+  workflow after 60 days with no other repository activity. Since this
+  workflow only commits back when it actually sends something, a long
+  quiet stretch could let that clock run out — check the Actions tab
+  occasionally, or push a small update now and then to reset it.
+- **Attachments**: any file referenced in `Schedule.xlsx`'s `Attachment` /
+  `Attachment2` columns must exist in this repo's `Attachments/` folder —
+  GitHub's servers can't reach files on your PC.

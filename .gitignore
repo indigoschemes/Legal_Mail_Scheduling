@@ -1,0 +1,8 @@
+# Sender credentials must never be committed -- they live only as
+# repository secrets (SENDER_EMAIL / APP_PASSWORD) on GitHub, or locally
+# in credentials.json for a local-only run.
+credentials.json
+config.json
+
+__pycache__/
+*.pyc
