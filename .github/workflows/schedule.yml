@@ -24,8 +24,7 @@ jobs:
 
       - name: Run scheduler
         env:
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
-          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+          LEGAL_MAILS_CREDENTIALS: ${{ secrets.LEGAL_MAILS_CREDENTIALS }}
           ATTACHMENTS_DIR: ${{ github.workspace }}/Attachments
         run: python mass_mail_scheduler.py
 

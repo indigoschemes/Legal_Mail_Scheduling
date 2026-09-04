@@ -75,12 +75,11 @@ def _clean(value) -> str:
 
 
 def load_credentials() -> dict:
-    """SENDER_EMAIL / APP_PASSWORD env vars (GitHub Actions secrets) take priority;
+    """LEGAL_MAILS_CREDENTIALS env var (GitHub Actions secret, JSON) takes priority;
     credentials.json (local runs, via set_sender_credentials.py) is the fallback."""
-    env_email = os.environ.get("SENDER_EMAIL")
-    env_password = os.environ.get("APP_PASSWORD")
-    if env_email and env_password:
-        return {"from_email": env_email, "app_password": env_password}
+    env_creds = os.environ.get("LEGAL_MAILS_CREDENTIALS")
+    if env_creds:
+        return json.loads(env_creds)
     if CREDENTIALS.exists():
         return json.loads(CREDENTIALS.read_text())
     return {}

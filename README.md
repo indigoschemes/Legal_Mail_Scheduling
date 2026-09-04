@@ -16,13 +16,17 @@ here.
 
 1. **Create a private repository** and push this folder's contents to it.
    (`git init`, `git add .`, `git commit`, add the remote, `git push`.)
-2. **Add two repository secrets** — repo → Settings → Secrets and
-   variables → Actions → New repository secret:
-   - `SENDER_EMAIL` — the Gmail address to send from.
-   - `APP_PASSWORD` — its 16-character Gmail App Password (see the main
-     README's "Setting the sender" section for how to generate one).
+2. **Add a repository secret** — repo → Settings → Secrets and variables →
+   Actions → New repository secret:
+   - Name: `LEGAL_MAILS_CREDENTIALS`
+   - Value: a JSON object with the Gmail address to send from and its
+     16-character Gmail App Password (see the main README's "Setting the
+     sender" section for how to generate one), e.g.:
+     ```json
+     {"from_email": "legal@indigopaints.com", "app_password": "abcdefghijklmnop"}
+     ```
 
-   These are read by `mass_mail_scheduler.py` via environment variables —
+   This is read by `mass_mail_scheduler.py` via an environment variable —
    nothing else to configure. `credentials.json` (used for local runs) is
    never used here and is excluded by `.gitignore`.
 3. That's it. The workflow runs automatically every day at the time set
