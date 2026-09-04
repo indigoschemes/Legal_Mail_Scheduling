@@ -2,11 +2,9 @@ name: Scheduled Mass Mail
 
 on:
   schedule:
-    # Trial run: 4:45 PM, 4:50 PM, 4:55 PM IST = 11:15, 11:20, 11:25 UTC.
-    # Cron is always UTC on GitHub -- adjust these if you change the local times.
-    - cron: "15 11 * * *"
-    - cron: "20 11 * * *"
-    - cron: "25 11 * * *"
+    # 07:00 UTC = 12:30 PM IST. Cron is always UTC on GitHub -- adjust this
+    # if you want the daily check to run at a different local time.
+    - cron: "0 7 * * *"
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
