@@ -12,6 +12,13 @@ See the main `README.md` in `LG/` for the full explanation of `Date`,
 `Subject`/`Message`, recurring rows, and `Status` values — none of that
 changes here.
 
+`Subject`/`Message` can use two placeholders, filled in automatically when
+the mail is built — write them as plain text, not an Excel formula (formulas
+aren't evaluated by the headless script that runs on GitHub):
+- `{date}` — the resolved send date for that row (`dd/mm/yyyy`), correctly
+  handling recurring `N Every month` rows.
+- `{label}` — the row's `Body Label` column value.
+
 ## One-time setup on GitHub
 
 1. **Create a private repository** and push this folder's contents to it.
@@ -30,7 +37,7 @@ changes here.
    nothing else to configure. `credentials.json` (used for local runs) is
    never used here and is excluded by `.gitignore`.
 3. That's it. The workflow runs automatically every day at the time set
-   in `schedule.yml` (default: 06:00 IST / 00:30 UTC — edit the `cron`
+   in `schedule.yml` (default: 12:30 PM IST / 07:00 UTC — edit the `cron`
    line there to change it). You can also trigger a run manually any time
    from the repo's **Actions** tab → "Scheduled Mass Mail" → **Run workflow**.
 

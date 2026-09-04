@@ -57,6 +57,7 @@ EMAILS_SHEET = "Emails"
 STATUS_COL = "Status"
 SUBJECT_COL = "Subject"
 MESSAGE_COL = "Message"
+BODY_LABEL_COL = "Body Label"  # fills in {label} in Subject/Message; {date} is the resolved send date
 
 SEND_DAYS_BEFORE = 0  # mail always goes out this many days before the Date column
 
@@ -178,6 +179,10 @@ def build_message(row: dict, from_email: str) -> EmailMessage:
     if not subject or not body:
         raise Problem(f"Missing {SUBJECT_COL if not subject else MESSAGE_COL} for this row.")
 
+    for placeholder, value in (("{date}", row.get("send_date_str", "")), ("{label}", row.get(BODY_LABEL_COL, ""))):
+        subject = subject.replace(placeholder, value)
+        body = body.replace(placeholder, value)
+
     msg = EmailMessage()
     msg["To"] = to_addr
     msg["From"] = from_email
@@ -296,6 +301,8 @@ def run(dry_run: bool, force_today: bool) -> None:
                 "Attachment2": _clean(get("Attachment2")),
                 SUBJECT_COL: _clean(get(SUBJECT_COL)),
                 MESSAGE_COL: get(MESSAGE_COL),
+                BODY_LABEL_COL: _clean(get(BODY_LABEL_COL)),
+                "send_date_str": f"{target:%d/%m/%Y}",
             }
 
             tag = " [recurring monthly]" if recurring_day else ""
