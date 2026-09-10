@@ -40,7 +40,7 @@ aren't evaluated by the headless script that runs on GitHub):
    nothing else to configure. `credentials.json` (used for local runs) is
    never used here and is excluded by `.gitignore`.
 3. That's it. The workflow runs automatically every day at the time set
-   in `schedule.yml` (default: 12:30 PM IST / 07:00 UTC — edit the `cron`
+   in `schedule.yml` (default: 9:00 AM IST / 03:30 UTC — edit the `cron`
    line there to change it). You can also trigger a run manually any time
    from the repo's **Actions** tab → "Scheduled Mass Mail" → **Run workflow**.
 
@@ -59,10 +59,11 @@ running on GitHub matches what you intend to send.
 - **Not to-the-minute precision**: GitHub can delay a scheduled run by a
   few minutes (occasionally more) under load — it still runs that day.
 - **60-day auto-disable**: GitHub automatically disables a scheduled
-  workflow after 60 days with no other repository activity. Since this
-  workflow only commits back when it actually sends something, a long
-  quiet stretch could let that clock run out — check the Actions tab
-  occasionally, or push a small update now and then to reset it.
+  workflow after 60 days with no repository activity. A separate monthly
+  `keepalive` job in `schedule.yml` guards against this by always making
+  a small commit (a timestamp in `.keepalive`) on the 1st of every month,
+  regardless of whether any mail was due — so the daily schedule never
+  goes stale even during a long quiet stretch.
 - **Attachments**: any file referenced in `Schedule.xlsx`'s `Attachment` /
   `Attachment2` columns must exist in this repo's `Attachments/` folder —
   GitHub's servers can't reach files on your PC.

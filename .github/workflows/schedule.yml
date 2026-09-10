@@ -5,6 +5,11 @@ on:
     # 03:30 UTC = 9:00 AM IST. Cron is always UTC on GitHub -- adjust this
     # if you want the daily check to run at a different local time.
     - cron: "30 3 * * *"
+    # Monthly keep-alive: GitHub auto-disables a scheduled workflow after 60
+    # days with no repository activity. This guarantees a commit at least
+    # once a month so the daily schedule above never gets silently disabled,
+    # even during a stretch with no mail due.
+    - cron: "0 0 1 * *"
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 permissions:
@@ -12,6 +17,7 @@ permissions:
 
 jobs:
   send:
+    if: github.event_name != 'schedule' || github.event.schedule == '30 3 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,3 +47,20 @@ jobs:
           else
             echo "No changes to Schedule.xlsx -- nothing to commit."
           fi
+
+  keepalive:
+    if: github.event.schedule == '0 0 1 * *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record keep-alive commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .keepalive
+          git add .keepalive
+          git commit -m "Monthly keep-alive commit (prevents GitHub's 60-day scheduled-workflow auto-disable)"
+          git push
