@@ -7,10 +7,13 @@ daily timer — see `.github/workflows/schedule.yml`.
 
 The scheduling rules are identical to the local version: every row in
 `Schedule.xlsx` has its own `Date` (a recurring `N Every month` spec, or
-the exact date to send on), and mail for that row goes out on that date.
-See the main `README.md` in `LG/` for the full explanation of `Date`,
-`Subject`/`Message`, recurring rows, and `Status` values — none of that
-changes here.
+the exact deadline) and mail for that row goes out 5 days before it. The
+`Date` column stays the real deadline — that's what shows up in the mail
+via the `{date}` placeholder — while the script writes the actual send
+date into a `Send Date` column each run, purely so you can see it in
+Excel. See the main `README.md` in `LG/` for the full explanation of
+`Date`, `Subject`/`Message`, recurring rows, and `Status` values — none
+of that changes here.
 
 `Subject`/`Message` can use two placeholders, filled in automatically when
 the mail is built — write them as plain text, not an Excel formula (formulas

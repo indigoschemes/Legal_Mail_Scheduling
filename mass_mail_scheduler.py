@@ -2,12 +2,16 @@
 Scheduled Mass Mail sender.
 
 Companion to the existing MassEmail.exe tool, but instead of sending
-immediately, each row in Schedule.xlsx carries its own "Date". The mail
-for that row is sent on that Date itself, independently of every other
-row. Date can also be a recurring monthly spec like "10 Every month" --
-see parse_recurring_day.
+immediately, each row in Schedule.xlsx carries its own "Date" -- the
+actual deadline, used as-is in the {date} placeholder in Subject/Message.
+The mail itself goes out SEND_DAYS_BEFORE days before that (currently 5),
+independently of every other row. Date can also be a recurring monthly
+spec like "10 Every month" -- see parse_recurring_day. Each run, the
+resolved send date is written back to the "Send Date" column for
+visibility -- the deadline shown in the mail is unaffected by this.
 
-Example: Date = 15/09/2026 -> mail goes out 15/09/2026.
+Example: Date = 15/09/2026, SEND_DAYS_BEFORE = 5 -> mail goes out
+10/09/2026, still referencing the 15/09/2026 deadline in its content.
 
 Run it once a day (see Run_Scheduler.bat / Windows Task Scheduler) and it
 will send whatever has come due and leave the rest pending.
@@ -57,9 +61,10 @@ EMAILS_SHEET = "Emails"
 STATUS_COL = "Status"
 SUBJECT_COL = "Subject"
 MESSAGE_COL = "Message"
-BODY_LABEL_COL = "Body Label"  # fills in {label} in Subject/Message; {date} is the resolved send date
+BODY_LABEL_COL = "Body Label"  # fills in {label} in Subject/Message; {date} is the Date column's deadline
+SEND_DATE_COL = "Send Date"  # auto-filled each run: the actual date mail goes out (deadline minus lead time)
 
-SEND_DAYS_BEFORE = 0  # mail always goes out this many days before the Date column
+SEND_DAYS_BEFORE = 5  # mail always goes out this many days before the Date column
 
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 465
@@ -231,7 +236,7 @@ def run(dry_run: bool, force_today: bool) -> None:
         raise Problem(f"'{EMAILS_SHEET}' has no 'email' column.")
 
     changed = False
-    for col in (STATUS_COL,):
+    for col in (STATUS_COL, SEND_DATE_COL):
         if col not in header_col:
             new_col = ws.max_column + 1
             ws.cell(1, new_col).value = col
@@ -271,6 +276,12 @@ def run(dry_run: bool, force_today: bool) -> None:
                     continue
 
             send_on = target - timedelta(days=SEND_DAYS_BEFORE)
+            existing_send_date = get(SEND_DATE_COL)
+            if isinstance(existing_send_date, datetime):
+                existing_send_date = existing_send_date.date()
+            if existing_send_date != send_on:
+                ws.cell(r, header_col[SEND_DATE_COL]).value = send_on
+                changed = True
 
             if status.lower().startswith("sent"):
                 last_sent = parse_sent_status_date(status)
