@@ -6,9 +6,10 @@ immediately, each row in Schedule.xlsx carries its own "Date" -- the
 actual deadline, used as-is in the {date} placeholder in Subject/Message.
 The mail itself goes out SEND_DAYS_BEFORE days before that (currently 5),
 independently of every other row. Date can also be a recurring monthly
-spec like "10 Every month" -- see parse_recurring_day. Each run, the
-resolved send date is written back to the "Send Date" column for
-visibility -- the deadline shown in the mail is unaffected by this.
+spec like "10 Every month" (see parse_recurring_day) or a recurring
+yearly spec like "15 July every Year" (see parse_recurring_yearly). Each
+run, the resolved send date is written back to the "Send Date" column
+for visibility -- the deadline shown in the mail is unaffected by this.
 
 Example: Date = 15/09/2026, SEND_DAYS_BEFORE = 5 -> mail goes out
 10/09/2026, still referencing the 15/09/2026 deadline in its content.
@@ -134,7 +135,41 @@ def this_months_occurrence(day: int, today: date) -> date:
     return date(today.year, today.month, min(day, last_day))
 
 
-SENT_STATUS_RE = re.compile(r"^sent\s*\((\d{2}/\d{2}/\d{4})\)$", re.IGNORECASE)
+RECURRING_YEARLY_RE = re.compile(r"every\s*year", re.IGNORECASE)
+_MONTH_NAME_TO_NUM = {calendar.month_name[i].lower(): i for i in range(1, 13)}
+_MONTH_NAME_TO_NUM.update({calendar.month_abbr[i].lower(): i for i in range(1, 13)})
+_MONTH_NAME_TO_NUM["sept"] = 9
+
+
+def parse_recurring_yearly(value) -> tuple[int, int] | None:
+    """'15 July every Year' -> (7, 15). None if not a recurring-yearly spec."""
+    text = _clean(value)
+    if not text or not RECURRING_YEARLY_RE.search(text):
+        return None
+    m = DAY_NUMBER_RE.search(text)
+    if not m:
+        return None
+    day = int(m.group())
+    if not (1 <= day <= 31):
+        return None
+    text_lower = text.lower()
+    month = next(
+        (num for name, num in _MONTH_NAME_TO_NUM.items() if re.search(rf"\b{name}\b", text_lower)),
+        None,
+    )
+    return (month, day) if month else None
+
+
+def this_years_occurrence(month: int, day: int, today: date) -> date:
+    """Day N of the given month, this year, clamped to that month's last day."""
+    last_day = calendar.monthrange(today.year, month)[1]
+    return date(today.year, month, min(day, last_day))
+
+
+# "Skipped (...)" is set by hand for a recurring row whose current cycle should
+# be left alone without implying mail went out; it's tracked identically to
+# "Sent (...)" so the row resumes normally on its next cycle.
+SENT_STATUS_RE = re.compile(r"^(?:sent|skipped)\s*\((\d{2}/\d{2}/\d{4})\)$", re.IGNORECASE)
 
 
 def parse_sent_status_date(status: str) -> date | None:
@@ -185,6 +220,10 @@ def build_message(row: dict, from_email: str) -> EmailMessage:
         raise Problem(f"Missing {SUBJECT_COL if not subject else MESSAGE_COL} for this row.")
 
     for placeholder, value in (("{date}", row.get("send_date_str", "")), ("{label}", row.get(BODY_LABEL_COL, ""))):
+        if not value:
+            # drop a following space too, so an empty value doesn't leave "<p> due date"
+            subject = subject.replace(f"{placeholder} ", "")
+            body = body.replace(f"{placeholder} ", "")
         subject = subject.replace(placeholder, value)
         body = body.replace(placeholder, value)
 
@@ -265,9 +304,13 @@ def run(dry_run: bool, force_today: bool) -> None:
             status = _clean(get(STATUS_COL))
             date_value = get("Date")
             recurring_day = parse_recurring_day(date_value)
+            recurring_yearly = None if recurring_day else parse_recurring_yearly(date_value)
+            is_recurring = recurring_day is not None or recurring_yearly is not None
 
             if recurring_day:
                 target = this_months_occurrence(recurring_day, today)
+            elif recurring_yearly:
+                target = this_years_occurrence(recurring_yearly[0], recurring_yearly[1], today)
             else:
                 target = parse_date(date_value)
                 if not target:
@@ -283,16 +326,17 @@ def run(dry_run: bool, force_today: bool) -> None:
                 ws.cell(r, header_col[SEND_DATE_COL]).value = send_on
                 changed = True
 
-            if status.lower().startswith("sent"):
+            if status.lower().startswith(("sent", "skipped")):
                 last_sent = parse_sent_status_date(status)
                 already_sent_this_cycle = (
                     last_sent is not None
-                    and recurring_day
+                    and is_recurring
                     and (last_sent.year, last_sent.month) == (send_on.year, send_on.month)
                 )
                 # A one-time row (or a recurring row whose sent date we can't parse) is
-                # never resent. A recurring row only skips if already sent THIS month.
-                if not recurring_day or already_sent_this_cycle or last_sent is None:
+                # never resent. A recurring row only skips if already sent THIS cycle
+                # (this month for monthly rows, this year for yearly rows).
+                if not is_recurring or already_sent_this_cycle or last_sent is None:
                     continue
 
             if not force_today and send_on > today:
@@ -316,7 +360,7 @@ def run(dry_run: bool, force_today: bool) -> None:
                 "send_date_str": f"{target:%d/%m/%Y}",
             }
 
-            tag = " [recurring monthly]" if recurring_day else ""
+            tag = " [recurring monthly]" if recurring_day else (" [recurring yearly]" if recurring_yearly else "")
             try:
                 msg = build_message(row, from_email or "(not configured)")
                 if dry_run:
